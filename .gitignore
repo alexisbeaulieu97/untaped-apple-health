@@ -1,0 +1,28 @@
+# Python bytecode and build output
+__pycache__/
+*.py[codz]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments and tool caches
+.venv/
+.uv-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local secrets and environment files
+.env
+.envrc
+
+# Apple Health exports — never commit personal health data
+export.xml
+export.zip
+*.health.xml
+
+# Editor noise
+.DS_Store
