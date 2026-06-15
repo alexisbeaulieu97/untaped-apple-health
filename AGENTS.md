@@ -1,10 +1,13 @@
 # AGENTS.md — untaped-apple-health
 
-The Apple Health plugin for `untaped`. It mirrors an Apple Health `export.xml`
-into a local SQLite database and exposes filter/aggregate queries over it. The
-analysis intelligence lives in the agent skill, not in hard-coded commands.
+A standalone CLI built on the `untaped` SDK, invoked as `untaped-apple-health`.
+It mirrors an Apple Health `export.xml` into a local SQLite database and exposes
+filter/aggregate queries over it. The analysis intelligence lives in the agent
+skill, not in hard-coded commands. The `untaped` SDK owns config loading, output
+helpers, profile selection, the shared `config` / `profile` / `skills` command
+groups, and shared errors.
 
-## Architecture (DDD, mirrors the other untaped plugins)
+## Architecture (DDD, mirrors the other untaped tools)
 
 - `domain/` — pure, no I/O: the `Record` value object, metric-type aliases, the
   `QuerySpec` value object + bin-size parsing, and date/clock parsing.
@@ -24,7 +27,7 @@ analysis intelligence lives in the agent skill, not in hard-coded commands.
 
 ## Hard rules
 
-1. **The plugin exposes data; the agent analyses it.** Do not add hard-coded
+1. **The tool exposes data; the agent analyses it.** Do not add hard-coded
    medication/titration/correlation commands. New capability = a new query
    shape or a new skill recipe, not frozen statistics.
 2. **Queries must reduce server-side.** Health exports are huge. Every `query`
@@ -38,17 +41,26 @@ analysis intelligence lives in the agent skill, not in hard-coded commands.
    `0600` permissions. Never log record values. Never commit real exports or
    fixtures derived from real data — tests use tiny synthetic XML only.
 
-## Plugin contract
+## Tool entry point
 
-API version 5 (`untaped>=0.5.1`): `manifest()` returns a `PluginManifest` with
-a `CliSpec`, `profile_settings={"apple_health": AppleHealthSettings}`, and a
-`SkillSpec`. `sync` uses the v5 `ui.progress()` capability for the import. Keep
-the CLI import lazy (the `CliSpec.import_path` + PEP 562 `__getattr__` in the
-package root) so `untaped --help` never imports the command stack.
+`untaped-apple-health` is a standalone CLI (`untaped>=0.6`). `__main__.main()`
+hands the Cyclopts `app` (re-exported from `untaped_apple_health.cli`) and a
+`ToolSpec` to the SDK's `run_tool`. The `ToolSpec` declares
+`command="untaped-apple-health"`, `section="apple_health"` (underscored —
+note the command itself is hyphenated), `profile_model=AppleHealthSettings`,
+and one `SkillAsset` for the packaged agent skill. `run_tool` mounts the shared
+`config` / `profile` / `skills` groups, wires the `--profile` / `--verbose`
+root options, and runs under the SDK's error contract. The console script is
+declared in `pyproject.toml` under `[project.scripts]` as
+`untaped-apple-health = "untaped_apple_health.__main__:main"`; there is no
+`untaped.plugins` entry point. `sync` uses the SDK's `ui.progress()` capability
+for the import. The package root re-exports `app` lazily (PEP 562
+`__getattr__`) so importing the package never eagerly pulls in the command
+tree.
 
 ## Typed pipe format (`--format pipe`)
 
-Requires `untaped>=0.5.1`. Each row-producing command tags its `--format pipe`
+Each row-producing command tags its `--format pipe`
 NDJSON envelopes with a namespaced `kind` hint via `render_rows(..., kind=...)`:
 
 - `metrics` → `health.metric` (per-source drill-in via `--type` → `health.metric-source`)
@@ -65,6 +77,7 @@ uv run pytest        # coverage gate: 80%
 uv run mypy
 uv run ruff check --fix
 uv run ruff format
+uv run untaped-apple-health --help
 ```
 
 Bump `version` in `pyproject.toml` with any user-facing change. Release per the
