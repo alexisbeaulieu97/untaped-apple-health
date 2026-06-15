@@ -18,11 +18,17 @@ from untaped.api import (
     FormatOption,
     create_app,
     echo,
+    plugin_context,
     render_rows,
     report_errors,
 )
 
-from untaped_apple_health.application import SyncExport, build_query_spec, report_status
+from untaped_apple_health.application import (
+    SyncExport,
+    build_query_spec,
+    report_status,
+    resolve_export_path,
+)
 from untaped_apple_health.cli._context import open_session
 from untaped_apple_health.domain.metrics import resolve_metric_type
 from untaped_apple_health.domain.query import Aggregation
@@ -76,16 +82,20 @@ app = create_app(
 @app.command(name="sync")
 def sync_command(*, export: ExportOption = None) -> None:
     """Import an Apple Health export into the local database (full snapshot)."""
-    with report_errors(), open_session() as (database, settings, ui):
-        source = _require_export(export, settings)
-        with ui.progress(f"Importing {source.name}") as handle:
-            handle.update("Reading and indexing records…")
-            result = SyncExport(database)(source, synced_at=_now())
-        echo(
-            f"Synced {result.record_count:,} records "
-            f"({result.first_ts} → {result.last_ts}) from {source}",
-            err=True,
-        )
+    with report_errors():
+        # Validate the export *before* open_session creates/chmods the DB, so a
+        # sync with nothing to import leaves no empty mirror behind.
+        settings = plugin_context().section("apple_health", AppleHealthSettings)
+        source = resolve_export_path(export, settings.export_path)
+        with open_session() as (database, _settings, ui):
+            with ui.progress(f"Importing {source.name}") as handle:
+                handle.update("Reading and indexing records…")
+                result = SyncExport(database)(source, synced_at=_now())
+            echo(
+                f"Synced {result.record_count:,} records "
+                f"({result.first_ts} → {result.last_ts}) from {source}",
+                err=True,
+            )
 
 
 @app.command(name="metrics")
@@ -174,16 +184,6 @@ def status_command(
     with report_errors(), open_session() as (database, settings, _ui):
         report = report_status(database, _optional_export(export, settings))
         echo(render_rows([report], fmt=fmt, columns=columns, kind="health.status"))
-
-
-def _require_export(explicit: Path | None, settings: AppleHealthSettings) -> Path:
-    export = _optional_export(explicit, settings)
-    if export is None:
-        raise ConfigError(
-            "No Apple Health export configured. Pass --export PATH or set "
-            "`apple_health.export_path` (Health app → Export All Health Data)."
-        )
-    return export
 
 
 def _optional_export(explicit: Path | None, settings: AppleHealthSettings) -> Path | None:

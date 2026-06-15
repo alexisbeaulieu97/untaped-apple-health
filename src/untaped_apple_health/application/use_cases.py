@@ -33,6 +33,29 @@ class SyncExport:
         )
 
 
+def resolve_export_path(explicit: Path | None, configured: Path | None) -> Path:
+    """Resolve and validate the export to sync, before any database is opened.
+
+    The single sync-input validation point (mirrors :func:`build_query_spec`): an
+    unconfigured export *and* a missing file both surface as :class:`ConfigError`
+    — a clean CLI error — and crucially this runs *before* ``open_session`` creates
+    the DB, so a sync with nothing to import leaves no empty mirror behind.
+    """
+    candidate = explicit or configured
+    if candidate is None:
+        raise ConfigError(
+            "No Apple Health export configured. Pass --export PATH or set "
+            "`apple_health.export_path` (Health app → Export All Health Data)."
+        )
+    export_path = Path(candidate).expanduser()
+    if not export_path.exists():
+        raise ConfigError(
+            f"Apple Health export not found at {export_path}. Pass --export PATH or set "
+            "`apple_health.export_path` in your profile (Health app → Export All Health Data)."
+        )
+    return export_path
+
+
 def build_query_spec(
     *,
     types: tuple[str, ...] = (),

@@ -9,7 +9,12 @@ from pathlib import Path
 import pytest
 from untaped.api import ConfigError
 
-from untaped_apple_health.application import SyncExport, build_query_spec, report_status
+from untaped_apple_health.application import (
+    SyncExport,
+    build_query_spec,
+    report_status,
+    resolve_export_path,
+)
 from untaped_apple_health.infrastructure.database import HealthDatabase
 
 HEART_RATE = "HKQuantityTypeIdentifierHeartRate"
@@ -63,3 +68,19 @@ def test_report_status_detects_stale_export(database: HealthDatabase, export_xml
     os.utime(export_xml, (future, future))
     report = report_status(database, export_xml)
     assert report["stale"] is True
+
+
+def test_resolve_export_path_rejects_unconfigured() -> None:
+    with pytest.raises(ConfigError):
+        resolve_export_path(None, None)
+
+
+def test_resolve_export_path_rejects_missing_file(tmp_path: Path) -> None:
+    with pytest.raises(ConfigError):
+        resolve_export_path(None, tmp_path / "nope.xml")
+
+
+def test_resolve_export_path_prefers_explicit_and_expands(export_xml: Path) -> None:
+    assert resolve_export_path(export_xml, None) == export_xml
+    # An explicit path wins over the configured one.
+    assert resolve_export_path(export_xml, Path("/does/not/exist.xml")) == export_xml
