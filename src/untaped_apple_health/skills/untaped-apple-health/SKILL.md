@@ -84,18 +84,34 @@ untaped apple-health query --type resting-heart-rate --from 2026-05-01 --agg bin
 untaped apple-health query --type bp-systolic  --from 2026-06-08 --agg raw
 untaped apple-health query --type bp-diastolic --from 2026-06-08 --agg raw
 ```
-Pair systolic/diastolic by timestamp. ACC/AHA reference ranges — a label for
-discussion, **not a diagnosis**: normal `<120/80`; elevated `120–129 / <80`;
+Pair systolic/diastolic by timestamp. Readings are often **duplicated** in the
+export (the same measurement logged twice, even from a single source) — dedup by
+`(start, value)` before counting or averaging. ACC/AHA reference ranges — a label
+for discussion, **not a diagnosis**: normal `<120/80`; elevated `120–129 / <80`;
 stage 1 `130–139 or 80–89`; stage 2 `≥140 or ≥90`; crisis `≥180 or ≥120` (seek
 care). Always present these as ranges to discuss with a clinician.
 
 ### Sleep last night
+A night crosses midnight, so pull a **two-day** window and pick the contiguous
+evening→morning block. `--from yesterday` alone catches the tail of the night
+*before* last plus the start of last night — two partial nights:
 ```
-untaped apple-health query --type sleep --from yesterday --agg raw
+untaped apple-health query --type sleep --from 2026-06-12 --to 2026-06-13 --agg raw
 ```
-Sleep is a category metric: the stage string (e.g.
-`HKCategoryValueSleepAnalysisAsleepCore`) is in the `value_text` field, with the
-`start`/`end` span giving the duration.
+Sleep is a category metric: the stage is in `value_text`, with each segment's
+`start`/`end` giving its span. **The segments overlap** — `…SleepAnalysisInBed`
+is an envelope that *contains* the `…AsleepDeep` / `…AsleepCore` / `…AsleepREM`
+stages — so totalling stages naively double-counts. Instead:
+
+- **Time asleep** = total of `AsleepDeep` + `AsleepCore` + `AsleepREM` only.
+  Never add `InBed` (it brackets the asleep time) or `Awake`. Those asleep
+  stages are contiguous, so summing their durations works; if any overlap
+  (e.g. two sources logging the same night), union the intervals instead.
+- **Time in bed** = the `InBed` segments (or the night's first start → last end).
+
+A full night should land in a believable range (≈7–9 h is typical); a
+double-digit "asleep" total is the tell that two nights or the `InBed` envelope
+slipped in.
 
 ## Piping into another untaped command (`--format pipe`)
 
