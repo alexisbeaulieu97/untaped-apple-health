@@ -32,7 +32,7 @@ HEART_RATE = "HKQuantityTypeIdentifierHeartRate"
 
 def test_default_database_path_honors_xdg(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
-    assert default_database_path() == tmp_path / "untaped" / "apple-health.db"
+    assert default_database_path() == tmp_path / "untaped" / "apple-health" / "apple-health.db"
 
 
 def test_rebuild_records_status(db: HealthDatabase) -> None:

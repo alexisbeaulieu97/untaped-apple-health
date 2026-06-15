@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import stat
 import zipfile
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -208,3 +209,62 @@ def test_status_export_flag_detects_newer_file(env: Env, tmp_path: Path) -> None
     assert result.exit_code == 0, result.output
     [row] = json.loads(result.stdout)
     assert row["stale"] is True
+
+
+# -- Validate-first: a sync with nothing to import must not create the DB -----
+
+
+def test_sync_no_export_configured_does_not_create_db(env: Env) -> None:
+    env.cfg.write_text(f'apple_health:\n  db_path: "{env.db_path}"\n')  # drop export_path
+    get_settings.cache_clear()
+    result = CliInvoker().invoke(app, ["sync"])
+    _assert_clean_error(result)
+    assert "export" in result.output.lower()
+    assert not env.db_path.exists()  # no empty mirror left behind
+
+
+def test_sync_missing_export_file_does_not_create_db(env: Env, tmp_path: Path) -> None:
+    result = CliInvoker().invoke(app, ["sync", "--export", str(tmp_path / "nope.xml")])
+    _assert_clean_error(result)
+    assert "not found" in result.output.lower()
+    assert not env.db_path.exists()
+
+
+# -- Default-path layout: the DB lives in its own subdir; chmod scopes to it --
+# The `env` fixture always configures an explicit db_path, so these drop it and
+# point XDG at a temp dir to exercise default_database_path() + the 0700 chmod.
+
+
+def test_failed_default_sync_leaves_shared_dir_untouched(
+    env: Env, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    env.cfg.write_text("apple_health: {}\n")  # no db_path, no export_path → default path
+    xdg = tmp_path / "xdg"
+    shared = xdg / "untaped"
+    shared.mkdir(parents=True)
+    shared.chmod(0o755)
+    monkeypatch.setenv("XDG_DATA_HOME", str(xdg))
+    get_settings.cache_clear()
+
+    result = CliInvoker().invoke(app, ["sync"])
+    _assert_clean_error(result)
+    assert not (shared / "apple-health").exists()  # plugin dir/DB never created
+    assert stat.S_IMODE(shared.stat().st_mode) == 0o755  # shared dir not tightened
+
+
+def test_default_sync_scopes_chmod_to_plugin_subdir(
+    env: Env, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    env.cfg.write_text(f'apple_health:\n  export_path: "{env.export}"\n')  # no db_path
+    xdg = tmp_path / "xdg"
+    shared = xdg / "untaped"
+    shared.mkdir(parents=True)
+    shared.chmod(0o755)
+    monkeypatch.setenv("XDG_DATA_HOME", str(xdg))
+    get_settings.cache_clear()
+
+    result = CliInvoker().invoke(app, ["sync"])
+    assert result.exit_code == 0, result.output
+    assert (shared / "apple-health" / "apple-health.db").exists()
+    assert stat.S_IMODE((shared / "apple-health").stat().st_mode) == 0o700  # plugin dir tightened
+    assert stat.S_IMODE(shared.stat().st_mode) == 0o755  # shared dir untouched

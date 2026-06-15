@@ -14,7 +14,9 @@ analysis intelligence lives in the agent skill, not in hard-coded commands.
     `<Record>` with its metadata. Memory-safe for multi-hundred-MB exports.
   - `database.py`: SQLite schema, snapshot-rebuild ingest, and query execution
     (filters + aggregation). Owns the data-dir / DB path.
-- `application/` — use-cases: `SyncExport`, `build_query_spec` (the single
+- `application/` — use-cases: `SyncExport`, `resolve_export_path` (the single
+  sync-input validation point — runs before the DB is opened so a sync with
+  nothing to import leaves no empty mirror), `build_query_spec` (the single
   query-input validation point), and `report_status`.
 - `cli/` — thin Cyclopts commands; parse args + config, call a use-case, render
   via core's `render_rows`. JSON is the agent-facing default.

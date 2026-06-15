@@ -1,6 +1,6 @@
 [project]
 name = "untaped-apple-health"
-version = "0.1.0"
+version = "0.1.1"
 description = "Query your Apple Health export as a local database from untaped."
 authors = [
     { name = "Alexis Beaulieu", email = "alexisbeaulieu97@gmail.com" }
