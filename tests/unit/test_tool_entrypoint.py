@@ -49,8 +49,7 @@ def _wired():
 def test_console_script_is_declared() -> None:
     data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
     assert (
-        data["project"]["scripts"]["untaped-apple-health"]
-        == "untaped_apple_health.__main__:main"
+        data["project"]["scripts"]["untaped-apple-health"] == "untaped_apple_health.__main__:main"
     )
 
 
