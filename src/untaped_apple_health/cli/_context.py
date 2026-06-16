@@ -1,6 +1,6 @@
 """Composition root: resolve settings and open the database for one command.
 
-Mirrors the other plugins' one-shot context pattern — ``app_context()``
+Mirrors the other tools' one-shot context pattern — ``app_context()``
 resolves settings exactly once (honoring the root ``--profile`` selector) and
 hands back a frozen snapshot, so nothing leaks into ambient process state.
 """

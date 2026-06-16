@@ -1,4 +1,4 @@
-"""Profile settings contributed by the Apple Health plugin.
+"""Profile settings for the Apple Health tool.
 
 These let ``sync`` find the export and the local mirror without arguments. They
 hold only filesystem paths — no secrets — so no ``SecretStr`` is needed.

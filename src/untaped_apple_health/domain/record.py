@@ -1,4 +1,4 @@
-"""The one value object the whole plugin moves around: a single Health record."""
+"""The one value object the whole tool moves around: a single Health record."""
 
 from __future__ import annotations
 
