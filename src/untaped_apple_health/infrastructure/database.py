@@ -52,12 +52,11 @@ CREATE INDEX IF NOT EXISTS ix_metadata_record ON metadata (record_id, key);
 
 
 def default_database_path() -> Path:
-    """The default DB location under the untaped data dir (mirrors core's XDG layout).
+    """The default DB location under the untaped data dir (shared XDG layout).
 
     The DB lives in its own ``apple-health/`` subdirectory so that tightening the
-    directory to ``0700`` (see ``open_session``) scopes to this plugin rather than
-    the shared ``untaped/`` data dir, which also holds the managed venv and other
-    plugins' state.
+    directory to ``0700`` (see ``open_session``) scopes to this tool rather than
+    the shared ``untaped/`` data dir, which other untaped tools also write under.
     """
     data_home = os.environ.get("XDG_DATA_HOME")
     root = Path(data_home) if data_home else Path.home() / ".local" / "share"

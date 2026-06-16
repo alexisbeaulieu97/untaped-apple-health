@@ -16,9 +16,9 @@ from untaped.api import (
     ColumnsOption,
     ConfigError,
     FormatOption,
+    app_context,
     create_app,
     echo,
-    plugin_context,
     render_rows,
     report_errors,
 )
@@ -85,7 +85,7 @@ def sync_command(*, export: ExportOption = None) -> None:
     with report_errors():
         # Validate the export *before* open_session creates/chmods the DB, so a
         # sync with nothing to import leaves no empty mirror behind.
-        settings = plugin_context().section("apple_health", AppleHealthSettings)
+        settings = app_context().section("apple_health", AppleHealthSettings)
         source = resolve_export_path(export, settings.export_path)
         with open_session() as (database, _settings, ui):
             with ui.progress(f"Importing {source.name}") as handle:
