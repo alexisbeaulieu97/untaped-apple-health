@@ -40,7 +40,10 @@ def env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, export_xml: Path) -> It
     register_profile_settings("apple_health", AppleHealthSettings)
     db_path = tmp_path / "health.db"
     cfg = tmp_path / "config.yml"
-    cfg.write_text(f'apple_health:\n  db_path: "{db_path}"\n  export_path: "{export_xml}"\n')
+    cfg.write_text(
+        "profiles:\n  default:\n    apple_health:\n"
+        f'      db_path: "{db_path}"\n      export_path: "{export_xml}"\n'
+    )
     monkeypatch.setenv("UNTAPED_CONFIG", str(cfg))
     get_settings.cache_clear()
     yield Env(cfg=cfg, db_path=db_path, export=export_xml)
@@ -189,7 +192,9 @@ def test_zip_without_export_is_clean_error_and_preserves_data(tmp_path: Path) ->
 
 
 def test_status_staleness_without_configured_export(env: Env) -> None:
-    env.cfg.write_text(f'apple_health:\n  db_path: "{env.db_path}"\n')  # drop export_path
+    env.cfg.write_text(
+        f'profiles:\n  default:\n    apple_health:\n      db_path: "{env.db_path}"\n'
+    )  # drop export_path
     get_settings.cache_clear()
     CliInvoker().invoke(app, ["sync", "--export", str(env.export)])
     result = CliInvoker().invoke(app, ["status", "--format", "json"])
@@ -215,7 +220,9 @@ def test_status_export_flag_detects_newer_file(env: Env, tmp_path: Path) -> None
 
 
 def test_sync_no_export_configured_does_not_create_db(env: Env) -> None:
-    env.cfg.write_text(f'apple_health:\n  db_path: "{env.db_path}"\n')  # drop export_path
+    env.cfg.write_text(
+        f'profiles:\n  default:\n    apple_health:\n      db_path: "{env.db_path}"\n'
+    )  # drop export_path
     get_settings.cache_clear()
     result = CliInvoker().invoke(app, ["sync"])
     _assert_clean_error(result)
@@ -238,7 +245,9 @@ def test_sync_missing_export_file_does_not_create_db(env: Env, tmp_path: Path) -
 def test_failed_default_sync_leaves_shared_dir_untouched(
     env: Env, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    env.cfg.write_text("apple_health: {}\n")  # no db_path, no export_path → default path
+    env.cfg.write_text(
+        "profiles:\n  default:\n    apple_health: {}\n"
+    )  # no db_path, no export_path → default path
     xdg = tmp_path / "xdg"
     shared = xdg / "untaped"
     shared.mkdir(parents=True)
@@ -255,7 +264,9 @@ def test_failed_default_sync_leaves_shared_dir_untouched(
 def test_default_sync_scopes_chmod_to_plugin_subdir(
     env: Env, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    env.cfg.write_text(f'apple_health:\n  export_path: "{env.export}"\n')  # no db_path
+    env.cfg.write_text(
+        f'profiles:\n  default:\n    apple_health:\n      export_path: "{env.export}"\n'
+    )  # no db_path
     xdg = tmp_path / "xdg"
     shared = xdg / "untaped"
     shared.mkdir(parents=True)
