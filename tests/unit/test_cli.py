@@ -29,7 +29,10 @@ def env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, export_xml: Path) -> It
     register_profile_settings("apple_health", AppleHealthSettings)
     db_path = tmp_path / "health.db"
     cfg = tmp_path / "config.yml"
-    cfg.write_text(f'apple_health:\n  db_path: "{db_path}"\n  export_path: "{export_xml}"\n')
+    cfg.write_text(
+        "profiles:\n  default:\n    apple_health:\n"
+        f'      db_path: "{db_path}"\n      export_path: "{export_xml}"\n'
+    )
     monkeypatch.setenv("UNTAPED_CONFIG", str(cfg))
     get_settings.cache_clear()
     yield Env(cfg=cfg, db_path=db_path, export=export_xml)
@@ -122,7 +125,9 @@ def test_status_reports_synced(env: Env) -> None:
 
 
 def test_sync_without_export_errors(env: Env) -> None:
-    env.cfg.write_text(f'apple_health:\n  db_path: "{env.db_path}"\n')
+    env.cfg.write_text(
+        f'profiles:\n  default:\n    apple_health:\n      db_path: "{env.db_path}"\n'
+    )
     get_settings.cache_clear()
     result = CliInvoker().invoke(app, ["sync"])
     assert result.exit_code != 0
