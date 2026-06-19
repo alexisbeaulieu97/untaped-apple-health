@@ -119,9 +119,16 @@ def test_status_reports_synced(env: Env) -> None:
     CliInvoker().invoke(app, ["sync"])
     result = CliInvoker().invoke(app, ["status", "--format", "json"])
     assert result.exit_code == 0, result.output
-    [row] = json.loads(result.stdout)
+    # status is a single entity → bare object {…} via emit (not [{…}]).
+    row = json.loads(result.stdout)
     assert row["synced"] is True
     assert row["record_count"] == 6
+
+    # …and a vertical detail view under --format table, not a boxed one-row table.
+    table = CliInvoker().invoke(app, ["status", "--format", "table"])
+    assert table.exit_code == 0, table.output
+    assert "synced:" in table.stdout
+    assert not any(ch in table.stdout for ch in "╭╮╰╯┌┐└┘│─")
 
 
 def test_sync_without_export_errors(env: Env) -> None:

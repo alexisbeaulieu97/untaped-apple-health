@@ -184,7 +184,7 @@ def test_zip_without_export_is_clean_error_and_preserves_data(tmp_path: Path) ->
     assert "export.xml" in result.output
 
     status = CliInvoker().invoke(app, ["status", "--format", "json"])
-    [row] = json.loads(status.stdout)
+    row = json.loads(status.stdout)  # single entity → bare object {…}
     assert row["record_count"] == 6  # the failed sync did not wipe the mirror
 
 
@@ -199,7 +199,7 @@ def test_status_staleness_without_configured_export(env: Env) -> None:
     CliInvoker().invoke(app, ["sync", "--export", str(env.export)])
     result = CliInvoker().invoke(app, ["status", "--format", "json"])
     assert result.exit_code == 0, result.output
-    [row] = json.loads(result.stdout)
+    row = json.loads(result.stdout)  # single entity → bare object {…}
     assert row["synced"] is True
     assert row["stale"] is False  # resolved via the stored source_path, not None
 
@@ -212,7 +212,7 @@ def test_status_export_flag_detects_newer_file(env: Env, tmp_path: Path) -> None
     os.utime(newer, (future, future))
     result = CliInvoker().invoke(app, ["status", "--export", str(newer), "--format", "json"])
     assert result.exit_code == 0, result.output
-    [row] = json.loads(result.stdout)
+    row = json.loads(result.stdout)  # single entity → bare object {…}
     assert row["stale"] is True
 
 
