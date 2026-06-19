@@ -19,6 +19,7 @@ from untaped.api import (
     app_context,
     create_app,
     echo,
+    emit,
     render_rows,
     report_errors,
 )
@@ -183,7 +184,7 @@ def status_command(
     """Show what was synced and whether the export on disk is newer than the sync."""
     with report_errors(), open_session() as (database, settings, _ui):
         report = report_status(database, _optional_export(export, settings))
-        echo(render_rows([report], fmt=fmt, columns=columns, kind="health.status"))
+        emit(report, fmt=fmt, columns=columns, kind="health.status")
 
 
 def _optional_export(explicit: Path | None, settings: AppleHealthSettings) -> Path | None:

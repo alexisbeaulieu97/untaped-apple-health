@@ -124,6 +124,10 @@ tags its records with a namespaced `kind` hint:
 - `query`   → `health.record`
 - `status`  → `health.status`
 
+`status` is a single entity: `--format table` renders a vertical key:value
+detail view and `--format json` emits a bare object (`{…}`, not a one-element
+`[{…}]`). `metrics`/`query` are collections (tables / JSON arrays).
+
 ```
 untaped-apple-health query --type heart-rate --agg bin --bin 1d --format pipe \
   | untaped-<some-consumer>
