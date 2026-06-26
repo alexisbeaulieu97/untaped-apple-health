@@ -76,3 +76,17 @@ uv run untaped-apple-health --help
 
 See [AGENTS.md](./AGENTS.md) for architecture rules and tool-specific
 invariants.
+
+## Security
+
+Please report suspected vulnerabilities privately. See
+[SECURITY.md](./SECURITY.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and [AGENTS.md](./AGENTS.md) for the
+local workflow, architecture rules, and tool-specific invariants.
+
+## License
+
+MIT. See [LICENSE](./LICENSE).
